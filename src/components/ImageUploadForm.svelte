@@ -77,7 +77,11 @@
       />
     </div>
     <div class="col-3">
-      <button style="width: 100%;" on:click={processImage}>Process Image</button
+      <button
+        type="button"
+        class="button primary"
+        style="width: 100%;"
+        on:click={processImage}>Process Image</button
       >
     </div>
   </div>

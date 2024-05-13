@@ -193,10 +193,10 @@
       </div>
 
       <div class="row">
-        <div class="col" style="text-align: center;">
+        <div class="col config-button-holder" style="text-align: center;">
           <button type="button" on:click={exportConfig}>Export Config</button>
           <button type="button" on:click={importConfig}>Import Config</button>
-          <button type="submit">Save API Keys</button>
+          <button class="button" type="submit">Save API Keys</button>
         </div>
       </div>
     </form>
@@ -205,4 +205,7 @@
 </div>
 
 <style>
+  .config-button-holder button {
+    margin-top: 0.5em;
+  }
 </style>
