@@ -6,6 +6,7 @@
 
   const ocrText = writable("");
   const correctedText = writable("");
+  let isLoading = false;
 
   let imageUrl = "";
   let imageFile: File | null = null;
@@ -21,6 +22,8 @@
       }
       if (imageFile) {
         imageUrl = URL.createObjectURL(imageFile);
+        ocrText.set("");
+        correctedText.set("");
       }
     }
   }
@@ -36,6 +39,8 @@
     imageFile = input.files[0];
     if (imageFile) {
       imageUrl = URL.createObjectURL(imageFile);
+      ocrText.set("");
+      correctedText.set("");
     }
   }
 
@@ -45,6 +50,8 @@
       return;
     }
 
+    isLoading = true;
+
     try {
       const extractedText = await analyzeImage(imageFile);
       ocrText.set(extractedText);
@@ -52,6 +59,8 @@
       correctedText.set(corrected);
     } catch (error) {
       console.error("Error processing image:", error);
+    } finally {
+      isLoading = false;
     }
   }
 </script>
@@ -89,16 +98,41 @@
   <div class="row">
     <div class="col">
       <div>OCR Text:</div>
-      <textarea readonly>{$ocrText}</textarea>
+      <div class="card output-holder ocr-text">
+        {#if !isLoading || $ocrText !== ""}
+          {$ocrText}
+        {/if}
+        {#if isLoading && $ocrText === ""}
+          Loading OCR text...
+        {/if}
+      </div>
     </div>
   </div>
   <div class="row">
     <div class="col">
       <div>Corrected Text:</div>
-      <textarea readonly>{$correctedText}</textarea>
+      <div class="card output-holder">
+        {#if !isLoading || $correctedText !== ""}
+          {$correctedText}
+        {/if}
+        {#if isLoading && $ocrText === "" && $correctedText === ""}
+          Waiting for OCR text...
+        {/if}
+        {#if isLoading && $ocrText !== "" && $correctedText === ""}
+          Loading corrected text...
+        {/if}
+      </div>
     </div>
   </div>
 </div>
 
 <style>
+  .output-holder {
+    min-height: 4em;
+  }
+
+  .ocr-text {
+    max-height: 10em;
+    overflow-y: scroll;
+  }
 </style>
