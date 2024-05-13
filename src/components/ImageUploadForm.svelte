@@ -6,6 +6,8 @@
 
   const ocrText = writable("");
   const correctedText = writable("");
+
+  let imageUrl = "";
   let imageFile: File | null = null;
 
   function handlePaste(event: ClipboardEvent) {
@@ -14,9 +16,11 @@
       for (const item of items) {
         if (item.type.indexOf("image") === 0) {
           imageFile = item.getAsFile();
-          processImage();
           break;
         }
+      }
+      if (imageFile) {
+        imageUrl = URL.createObjectURL(imageFile);
       }
     }
   }
@@ -30,6 +34,9 @@
       return;
     }
     imageFile = input.files[0];
+    if (imageFile) {
+      imageUrl = URL.createObjectURL(imageFile);
+    }
   }
 
   async function processImage() {
@@ -66,11 +73,31 @@
     </div>
   </div>
 
-  <p>OCR Text:</p>
-  <textarea readonly>{$ocrText}</textarea>
+  {#if imageUrl}
+    <div class="row">
+      <div class="col" style="text-align: center;">
+        <!-- svelte-ignore a11y-img-redundant-alt -->
+        <img
+          src={imageUrl}
+          alt="Selected image"
+          style="max-width: 100%; max-height: 20vh;"
+        />
+      </div>
+    </div>
+  {/if}
 
-  <p>Corrected Text:</p>
-  <textarea readonly>{$correctedText}</textarea>
+  <div class="row">
+    <div class="col">
+      <div>OCR Text:</div>
+      <textarea readonly>{$ocrText}</textarea>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col">
+      <div>Corrected Text:</div>
+      <textarea readonly>{$correctedText}</textarea>
+    </div>
+  </div>
 </div>
 
 <style>
