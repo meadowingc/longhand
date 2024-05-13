@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import { saveToLocalStorage, getFromLocalStorage } from "../lib/LocalStorage";
   import { azureApiKey, azureEndpoint } from "../lib/AzureOcrService";
   import { openAiApiKey } from "../lib/OpenAIGPT4VisionService";
@@ -6,6 +7,12 @@
   let azureKey: string = getFromLocalStorage("azureApiKey") || "";
   let azureUrl: string = getFromLocalStorage("azureEndpoint") || "";
   let openAiKey: string = getFromLocalStorage("openAiApiKey") || "";
+
+  onMount(() => {
+    azureApiKey.set(azureKey);
+    azureEndpoint.set(azureUrl);
+    openAiApiKey.set(openAiKey);
+  });
 
   function saveApiKeys() {
     saveToLocalStorage("azureApiKey", azureKey);
@@ -22,12 +29,12 @@
   <form on:submit|preventDefault={saveApiKeys}>
     <div class="row">
       <div class="col">
-        <label for="azureKey">Azure API Key:</label>
-        <input id="azureKey" type="text" bind:value={azureKey} />
+        <label for="azureUrl">Azure Computer Vision Endpoint URL:</label>
+        <input id="azureUrl" type="text" bind:value={azureUrl} />
       </div>
       <div class="col">
-        <label for="azureUrl">Azure Endpoint URL:</label>
-        <input id="azureUrl" type="text" bind:value={azureUrl} />
+        <label for="azureKey">Azure Computer Vision API Key:</label>
+        <input id="azureKey" type="text" bind:value={azureKey} />
       </div>
       <div class="col">
         <label for="openAiKey">OpenAI API Key:</label>

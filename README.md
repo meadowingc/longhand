@@ -13,10 +13,12 @@ To run this application, you will need API keys for Azure and OpenAI services. F
 3. Once the resource is created, navigate to the 'Keys and Endpoint' section.
 4. Copy the 'KEY1' or 'KEY2' for your application.
 
+Note: Azure Cognitive Services offers a free pricing tier that should be more than enough for personal use.
+
 ### OpenAI API Key
 
 1. Sign up or log in to your account on the [OpenAI website](https://openai.com/).
-2. Navigate to the API section in your account settings.
+2. Navigate to the "API Keys" section in the dashboard.
 3. Generate a new API key or use an existing one for your application.
 
 Once you have obtained your API keys, you can enter them into the application's configuration to start using the services.

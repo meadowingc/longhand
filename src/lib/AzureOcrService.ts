@@ -12,16 +12,13 @@ async function analyzeImage(image: Blob): Promise<string> {
         return Promise.reject('Azure API key or endpoint is not set.');
     }
 
-    const formData = new FormData();
-    formData.append('image', image);
-
-    const response = await fetch(endpoint + '/vision/v3.0/ocr', {
+    const response = await fetch(endpoint + '/computervision/imageanalysis:analyze?features=read&model-version=latest&language=en&gender-neutral-caption=false&api-version=2023-10-01', {
         method: 'POST',
         headers: {
             'Ocp-Apim-Subscription-Key': apiKey,
             'Content-Type': 'application/octet-stream'
         },
-        body: formData
+        body: image
     });
 
     if (!response.ok) {
@@ -31,8 +28,13 @@ async function analyzeImage(image: Blob): Promise<string> {
     }
 
     const data = await response.json();
-    // Assuming the response contains a field 'text' with the OCR result
-    return data.text;
+    // Extract and concatenate all the words from the response
+    const text = data.readResult.blocks.flatMap(region => 
+        region.lines.flatMap(line => 
+            line.words.map(word => word.text)
+        )
+    ).join(' ');
+    return text;
 }
 
 export { azureApiKey, azureEndpoint, analyzeImage };
