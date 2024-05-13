@@ -60,6 +60,44 @@
     azureOpenAiKey.set(l_azureOpenAiKey);
     azureOpenAiVersion.set(l_azureOpenAiVersion);
   }
+
+  function exportConfig() {
+    const config = {
+      azureApiKey: l_azureKey,
+      azureEndpoint: l_azureUrl,
+      openAiApiKey: l_openAiKey,
+      useAzureOpenAI: l_useAzureOpenAIFlag,
+      azureOpenAiEndpoint: l_azureOpenAiEndpoint,
+      azureOpenAiDeployment: l_azureOpenAiDeployment,
+      azureOpenAiKey: l_azureOpenAiKey,
+      azureOpenAiVersion: l_azureOpenAiVersion,
+    };
+    const configStr = JSON.stringify(config);
+    const base64Config = btoa(configStr);
+    prompt("Here is your configuration:", base64Config);
+  }
+
+  function importConfig() {
+    const base64Config = prompt("Please paste your configuration here:");
+    if (base64Config) {
+      try {
+        const configStr = atob(base64Config);
+        const config = JSON.parse(configStr);
+        l_azureKey = config.azureApiKey || "";
+        l_azureUrl = config.azureEndpoint || "";
+        l_openAiKey = config.openAiApiKey || "";
+        l_useAzureOpenAIFlag = config.useAzureOpenAI || false;
+        l_azureOpenAiEndpoint = config.azureOpenAiEndpoint || "";
+        l_azureOpenAiDeployment = config.azureOpenAiDeployment || "";
+        l_azureOpenAiKey = config.azureOpenAiKey || "";
+        l_azureOpenAiVersion = config.azureOpenAiVersion || "";
+
+        saveApiKeys();
+      } catch (e: any) {
+        alert("Failed to import configuration: " + e.message);
+      }
+    }
+  }
 </script>
 
 <div style="margin-top: 2em;">
@@ -141,6 +179,8 @@
 
     <div class="row">
       <div class="col" style="text-align: center;">
+        <button type="button" on:click={exportConfig}>Export Config</button>
+        <button type="button" on:click={importConfig}>Import Config</button>
         <button type="submit">Save API Keys</button>
       </div>
     </div>
