@@ -113,7 +113,9 @@
       <div>Corrected Text:</div>
       <div class="card output-holder">
         {#if !isLoading || $correctedText !== ""}
-          {$correctedText}
+          <pre>
+{$correctedText}
+</pre>
         {/if}
         {#if isLoading && $ocrText === "" && $correctedText === ""}
           Waiting for OCR text...
@@ -129,6 +131,12 @@
 <style>
   .output-holder {
     min-height: 4em;
+  }
+
+  .output-holder pre {
+    max-height: 600px;
+    overflow-y: auto;
+    white-space: pre-wrap;
   }
 
   .ocr-text {
