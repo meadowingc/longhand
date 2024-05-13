@@ -1,4 +1,5 @@
 import { writable, get } from 'svelte/store';
+import { toastMessage } from './toastService';
 
 const azureApiKey = writable<string>('');
 const azureEndpoint = writable<string>('');
@@ -7,7 +8,8 @@ async function analyzeImage(image: Blob): Promise<string> {
     const apiKey = get(azureApiKey);
     const endpoint = get(azureEndpoint);
     if (!apiKey || !endpoint) {
-        throw new Error('Azure API key or endpoint is not set.');
+        toastMessage.set('Azure API key or endpoint is not set.');
+        return Promise.reject('Azure API key or endpoint is not set.');
     }
 
     const formData = new FormData();
@@ -23,7 +25,9 @@ async function analyzeImage(image: Blob): Promise<string> {
     });
 
     if (!response.ok) {
-        throw new Error(`Azure OCR API call failed: ${response.statusText}`);
+        const errorMessage = `Azure OCR API call failed: ${response.statusText}`;
+        toastMessage.set(errorMessage);
+        return Promise.reject(errorMessage);
     }
 
     const data = await response.json();

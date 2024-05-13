@@ -1,13 +1,14 @@
 <script lang="ts">
-  import ImageUploadForm from './components/ImageUploadForm.svelte';
-  import ApiKeysForm from './components/ApiKeysForm.svelte';
+  import ImageUploadForm from "./components/ImageUploadForm.svelte";
+  import ApiKeysForm from "./components/ApiKeysForm.svelte";
+  import Toast from "./components/Toast.svelte";
 </script>
 
 <main>
-  <ImageUploadForm />
   <ApiKeysForm />
+  <ImageUploadForm />
+  <Toast />
 </main>
 
 <style>
-  /* Styles for the OCR application will go here */
 </style>

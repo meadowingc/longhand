@@ -1,11 +1,13 @@
 import { writable, get } from "svelte/store";
+import { toastMessage } from "./toastService";
 
 const openAiApiKey = writable<string>("");
 
 async function correctText(ocrText: string, image: Blob): Promise<string> {
   const apiKey = get(openAiApiKey);
   if (!apiKey) {
-    throw new Error("OpenAI API key is not set.");
+    toastMessage.set("OpenAI API key is not set.");
+    return Promise.reject("OpenAI API key is not set.");
   }
 
   // Placeholder for OpenAI GPT-4 Vision API call
@@ -27,9 +29,9 @@ async function correctText(ocrText: string, image: Blob): Promise<string> {
   );
 
   if (!response.ok) {
-    throw new Error(
-      `OpenAI GPT-4 Vision API call failed: ${response.statusText}`
-    );
+    const errorMessage = `OpenAI GPT-4 Vision API call failed: ${response.statusText}`;
+    toastMessage.set(errorMessage);
+    return Promise.reject(errorMessage);
   }
 
   const data = await response.json();
