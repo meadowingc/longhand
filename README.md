@@ -1,47 +1,32 @@
-# Svelte + TS + Vite
+# Application Description and API Key Instructions
 
-This template should help get you started developing with Svelte and TypeScript in Vite.
+This application is designed to leverage the power of Azure's OCR (Optical Character Recognition) and OpenAI's GPT-4 to provide a seamless experience in processing and understanding images and text. It's built using Svelte with TypeScript and bundled with Vite for a modern, fast development experience.
 
-## Recommended IDE Setup
+## Getting Started
 
-[VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode).
+To run this application, you will need API keys for Azure and OpenAI services. Follow the steps below to obtain your keys:
 
-## Need an official Svelte framework?
+### Azure Cognitive Services API Key
 
-Check out [SvelteKit](https://github.com/sveltejs/kit#readme), which is also powered by Vite. Deploy anywhere with its serverless-first approach and adapt to various platforms, with out of the box support for TypeScript, SCSS, and Less, and easily-added support for mdsvex, GraphQL, PostCSS, Tailwind CSS, and more.
+1. Go to the [Azure Portal](https://portal.azure.com/).
+2. Create a new Cognitive Services resource.
+3. Once the resource is created, navigate to the 'Keys and Endpoint' section.
+4. Copy the 'KEY1' or 'KEY2' for your application.
 
-## Technical considerations
+### OpenAI API Key
 
-**Why use this over SvelteKit?**
+1. Sign up or log in to your account on the [OpenAI website](https://openai.com/).
+2. Navigate to the API section in your account settings.
+3. Generate a new API key or use an existing one for your application.
 
-- It brings its own routing solution which might not be preferable for some users.
-- It is first and foremost a framework that just happens to use Vite under the hood, not a Vite app.
+Once you have obtained your API keys, you can enter them into the application's configuration to start using the services.
 
-This template contains as little as possible to get started with Vite + TypeScript + Svelte, while taking into account the developer experience with regards to HMR and intellisense. It demonstrates capabilities on par with the other `create-vite` templates and is a good starting point for beginners dipping their toes into a Vite + Svelte project.
+## Running the Application
 
-Should you later need the extended capabilities and extensibility provided by SvelteKit, the template has been structured similarly to SvelteKit so that it is easy to migrate.
+To run the application locally, follow these steps:
 
-**Why `global.d.ts` instead of `compilerOptions.types` inside `jsconfig.json` or `tsconfig.json`?**
+1. Install the dependencies with `yarn install`.
+2. Start the development server with `yarn dev`.
+3. Open your browser and navigate to `http://localhost:3000`.
 
-Setting `compilerOptions.types` shuts out all other types not explicitly listed in the configuration. Using triple-slash references keeps the default TypeScript setting of accepting type information from the entire workspace, while also adding `svelte` and `vite/client` type information.
-
-**Why include `.vscode/extensions.json`?**
-
-Other templates indirectly recommend extensions via the README, but this file allows VS Code to prompt the user to install the recommended extension upon opening the project.
-
-**Why enable `allowJs` in the TS template?**
-
-While `allowJs: false` would indeed prevent the use of `.js` files in the project, it does not prevent the use of JavaScript syntax in `.svelte` files. In addition, it would force `checkJs: false`, bringing the worst of both worlds: not being able to guarantee the entire codebase is TypeScript, and also having worse typechecking for the existing JavaScript. In addition, there are valid use cases in which a mixed codebase may be relevant.
-
-**Why is HMR not preserving my local component state?**
-
-HMR state preservation comes with a number of gotchas! It has been disabled by default in both `svelte-hmr` and `@sveltejs/vite-plugin-svelte` due to its often surprising behavior. You can read the details [here](https://github.com/rixo/svelte-hmr#svelte-hmr).
-
-If you have state that's important to retain within a component, consider creating an external store which would not be replaced by HMR.
-
-```ts
-// store.ts
-// An extremely simple external store
-import { writable } from 'svelte/store'
-export default writable(0)
-```
+Enjoy the application and explore the capabilities of Azure OCR and OpenAI GPT-4!
