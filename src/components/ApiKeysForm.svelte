@@ -10,6 +10,7 @@
     azureOpenAiKey,
     azureOpenAiVersion,
   } from "../lib/OpenAIGPT4VisionService";
+  import * as LZString from 'lz-string';
 
   let l_azureKey: string = "";
   let l_azureUrl: string = "";
@@ -83,15 +84,15 @@
       azureOpenAiVersion: l_azureOpenAiVersion,
     };
     const configStr = JSON.stringify(config);
-    const base64Config = btoa(configStr);
-    prompt("Here is your configuration:", base64Config);
+    const compressedConfigStr = LZString.compressToUTF16(configStr);
+    prompt("Here is your configuration:", compressedConfigStr);
   }
 
   function importConfig() {
-    const base64Config = prompt("Please paste your configuration here:");
-    if (base64Config) {
+    const compressedConfigStr = prompt("Please paste your configuration here:");
+    if (compressedConfigStr) {
       try {
-        const configStr = atob(base64Config);
+        const configStr = LZString.decompressFromUTF16(compressedConfigStr);
         const config = JSON.parse(configStr);
         l_azureKey = config.azureApiKey || "";
         l_azureUrl = config.azureEndpoint || "";
