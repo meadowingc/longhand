@@ -1,4 +1,4 @@
-# Application Description and API Key Instructions
+# ✍ Longhand
 
 This application is designed to leverage the power of Azure's OCR (Optical Character Recognition) and OpenAI's GPT-4 to provide a seamless experience in processing and understanding images and text. It's built using Svelte with TypeScript and bundled with Vite for a modern, fast development experience.
 
