@@ -2,25 +2,63 @@
   import { onMount } from "svelte";
   import { saveToLocalStorage, getFromLocalStorage } from "../lib/LocalStorage";
   import { azureApiKey, azureEndpoint } from "../lib/AzureOcrService";
-  import { openAiApiKey } from "../lib/OpenAIGPT4VisionService";
+  import {
+    openAiApiKey,
+    useAzureOpenAI,
+    azureOpenAiEndpoint,
+    azureOpenAiDeployment,
+    azureOpenAiKey,
+    azureOpenAiVersion,
+  } from "../lib/OpenAIGPT4VisionService";
 
-  let azureKey: string = getFromLocalStorage("azureApiKey") || "";
-  let azureUrl: string = getFromLocalStorage("azureEndpoint") || "";
-  let openAiKey: string = getFromLocalStorage("openAiApiKey") || "";
+  let l_azureKey: string = "";
+  let l_azureUrl: string = "";
+  let l_openAiKey: string = "";
+  let l_useAzureOpenAIFlag: boolean = false;
+  let l_azureOpenAiEndpoint: string = "";
+  let l_azureOpenAiDeployment: string = "";
+  let l_azureOpenAiKey: string = "";
+  let l_azureOpenAiVersion: string = "";
 
   onMount(() => {
-    azureApiKey.set(azureKey);
-    azureEndpoint.set(azureUrl);
-    openAiApiKey.set(openAiKey);
+    l_azureKey = getFromLocalStorage("azureApiKey") || "";
+    l_azureUrl = getFromLocalStorage("azureEndpoint") || "";
+    l_openAiKey = getFromLocalStorage("openAiApiKey") || "";
+    l_useAzureOpenAIFlag = getFromLocalStorage("useAzureOpenAI") === "true";
+    l_azureOpenAiEndpoint = getFromLocalStorage("azureOpenAiEndpoint") || "";
+    l_azureOpenAiDeployment =
+      getFromLocalStorage("azureOpenAiDeployment") || "";
+    l_azureOpenAiKey = getFromLocalStorage("azureOpenAiKey") || "";
+    l_azureOpenAiVersion = getFromLocalStorage("azureOpenAiVersion") || "";
+
+    azureApiKey.set(l_azureKey);
+    azureEndpoint.set(l_azureUrl);
+    openAiApiKey.set(l_openAiKey);
+    useAzureOpenAI.set(l_useAzureOpenAIFlag);
+    azureOpenAiEndpoint.set(l_azureOpenAiEndpoint);
+    azureOpenAiDeployment.set(l_azureOpenAiDeployment);
+    azureOpenAiKey.set(l_azureOpenAiKey);
+    azureOpenAiVersion.set(l_azureOpenAiVersion);
   });
 
   function saveApiKeys() {
-    saveToLocalStorage("azureApiKey", azureKey);
-    saveToLocalStorage("azureEndpoint", azureUrl);
-    saveToLocalStorage("openAiApiKey", openAiKey);
-    azureApiKey.set(azureKey);
-    azureEndpoint.set(azureUrl);
-    openAiApiKey.set(openAiKey);
+    saveToLocalStorage("azureApiKey", l_azureKey);
+    saveToLocalStorage("azureEndpoint", l_azureUrl);
+    saveToLocalStorage("openAiApiKey", l_openAiKey);
+    saveToLocalStorage("useAzureOpenAI", l_useAzureOpenAIFlag.toString());
+    saveToLocalStorage("azureOpenAiEndpoint", l_azureOpenAiEndpoint);
+    saveToLocalStorage("azureOpenAiDeployment", l_azureOpenAiDeployment);
+    saveToLocalStorage("azureOpenAiKey", l_azureOpenAiKey);
+    saveToLocalStorage("azureOpenAiVersion", l_azureOpenAiVersion);
+
+    azureApiKey.set(l_azureKey);
+    azureEndpoint.set(l_azureUrl);
+    openAiApiKey.set(l_openAiKey);
+    useAzureOpenAI.set(l_useAzureOpenAIFlag);
+    azureOpenAiEndpoint.set(l_azureOpenAiEndpoint);
+    azureOpenAiDeployment.set(l_azureOpenAiDeployment);
+    azureOpenAiKey.set(l_azureOpenAiKey);
+    azureOpenAiVersion.set(l_azureOpenAiVersion);
   }
 </script>
 
@@ -28,19 +66,79 @@
   <hr />
   <form on:submit|preventDefault={saveApiKeys}>
     <div class="row">
+      <div class="col" style="text-align: right;">
+        <label for="useAzureOpenAI">Use Azure OpenAI Service:</label>
+        <input
+          id="useAzureOpenAI"
+          type="checkbox"
+          bind:checked={l_useAzureOpenAIFlag}
+        />
+      </div>
+    </div>
+    <div class="row">
       <div class="col">
         <label for="azureUrl">Azure Computer Vision Endpoint URL:</label>
-        <input id="azureUrl" type="text" bind:value={azureUrl} />
+        <input id="azureUrl" type="text" bind:value={l_azureUrl} />
       </div>
       <div class="col">
         <label for="azureKey">Azure Computer Vision API Key:</label>
-        <input id="azureKey" type="text" bind:value={azureKey} />
+        <input id="azureKey" type="text" bind:value={l_azureKey} />
       </div>
+
       <div class="col">
-        <label for="openAiKey">OpenAI API Key:</label>
-        <input id="openAiKey" type="text" bind:value={openAiKey} />
+        {#if l_useAzureOpenAIFlag}
+          <div class="row">
+            <div class="col">
+              <label for="azureOpenAiEndpoint">Azure OpenAI Endpoint URL:</label
+              >
+              <input
+                id="azureOpenAiEndpoint"
+                type="text"
+                bind:value={l_azureOpenAiEndpoint}
+              />
+            </div>
+          </div>
+          <div class="row">
+            <div class="col">
+              <label for="azureOpenAiDeployment"
+                >Azure OpenAI Model Deployment Name:</label
+              >
+              <input
+                id="azureOpenAiDeployment"
+                type="text"
+                bind:value={l_azureOpenAiDeployment}
+              />
+            </div>
+          </div>
+          <div class="row">
+            <div class="col">
+              <label for="azureOpenAiKey">Azure OpenAI Version:</label>
+              <input
+                id="azureOpenAiVersion"
+                type="text"
+                bind:value={l_azureOpenAiVersion}
+              />
+            </div>
+          </div>
+          <div class="row">
+            <div class="col">
+              <label for="azureOpenAiKey">Azure OpenAI Key:</label>
+              <input
+                id="azureOpenAiKey"
+                type="text"
+                bind:value={l_azureOpenAiKey}
+              />
+            </div>
+          </div>
+        {:else}
+          <div class="row">
+            <label for="openAiKey">OpenAI API Key:</label>
+            <input id="openAiKey" type="text" bind:value={l_openAiKey} />
+          </div>
+        {/if}
       </div>
     </div>
+
     <div class="row">
       <div class="col" style="text-align: center;">
         <button type="submit">Save API Keys</button>

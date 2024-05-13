@@ -3,18 +3,17 @@ import { toastMessage } from "./toastService";
 
 const openAiApiKey = writable<string>("");
 
-async function correctText(ocrText: string, image: Blob): Promise<string> {
-  const apiKey = get(openAiApiKey);
-  if (!apiKey) {
-    toastMessage.set("OpenAI API key is not set.");
-    return Promise.reject("OpenAI API key is not set.");
-  }
+const useAzureOpenAI = writable<boolean>(false);
+const azureOpenAiEndpoint = writable<string>("");
+const azureOpenAiDeployment = writable<string>("");
+const azureOpenAiKey = writable<string>("");
+const azureOpenAiVersion = writable<string>("");
 
-  // Convert image Blob to base64
+async function correctText(ocrText: string, image: Blob): Promise<string> {
   const base64Image = await blobToBase64(image);
 
   const payload = {
-    model: "gpt-4-turbo",
+    model: get(useAzureOpenAI) ? get(azureOpenAiDeployment) : "gpt-4-turbo",
     messages: [
       {
         role: "system",
@@ -29,7 +28,7 @@ Your output should consist solely of the corrected text. You are to make no othe
 The OCR process will often output incorrect text so it's up to you to correct a character or word that doesn't seem to make sense in its context. Other than that you should leave the text unchaged so as to preserve the look and feeling of the original.
 
 Please output the corrected text in a clean and readable format, ready for use. Please represent as proper markdown any text formatting that you see in the picture: paragraph breaks, lists, and quotes, etc.
-        `,
+`,
       },
       {
         role: "user",
@@ -50,12 +49,45 @@ Please output the corrected text in a clean and readable format, ready for use. 
     max_tokens: 1024,
   };
 
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
+  let endpoint: string = "";
+  let headers: HeadersInit = {};
+
+  if (get(useAzureOpenAI)) {
+    if (
+      !get(azureOpenAiEndpoint) ||
+      !get(azureOpenAiKey) ||
+      !get(azureOpenAiDeployment) ||
+      !get(azureOpenAiVersion)
+    ) {
+      toastMessage.set("Azure OpenAI parameters are not set.");
+      return Promise.reject("Azure OpenAI parameters are not set.");
+    }
+
+    endpoint = `${get(azureOpenAiEndpoint)}/openai/deployments/${get(
+      azureOpenAiDeployment
+    )}/chat/completions?api-version=${get(azureOpenAiVersion)}`;
+
+    headers = {
+      "api-key": get(azureOpenAiKey),
       "Content-Type": "application/json",
-    },
+    };
+  } else {
+    if (!get(openAiApiKey)) {
+      toastMessage.set("OpenAI API key is not set.");
+      return Promise.reject("OpenAI API key is not set.");
+    }
+
+    endpoint = "https://api.openai.com/v1/chat/completions";
+
+    headers = {
+      Authorization: `Bearer ${get(openAiApiKey)}`,
+      "Content-Type": "application/json",
+    };
+  }
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: headers,
     body: JSON.stringify(payload),
   });
 
@@ -82,4 +114,13 @@ function blobToBase64(blob: Blob): Promise<string> {
     reader.readAsDataURL(blob);
   });
 }
-export { openAiApiKey, correctText };
+
+export {
+  openAiApiKey,
+  useAzureOpenAI,
+  azureOpenAiEndpoint,
+  azureOpenAiDeployment,
+  azureOpenAiKey,
+  azureOpenAiVersion,
+  correctText,
+};
