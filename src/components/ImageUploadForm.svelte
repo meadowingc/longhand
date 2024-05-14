@@ -66,7 +66,7 @@
 </script>
 
 <div style="margin-top: 2em;">
-  <label for="imageUpload">Upload (or paste) an image</label>
+  <label for="imageUpload">Upload (or paste with Ctrl+V) an image</label>
   <div class="row">
     <div class="col-9">
       <input
