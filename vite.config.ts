@@ -13,7 +13,7 @@ export default defineConfig({
   plugins: [
     svelte(),
     replace({
-      __commitHash__: commitHash.substring(0, 7),
+      __commitHash__: commitHash.substring(0, 10),
       preventAssignment: true,
     }),
   ],
