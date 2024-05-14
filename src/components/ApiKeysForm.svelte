@@ -10,7 +10,7 @@
     azureOpenAiKey,
     azureOpenAiVersion,
   } from "../lib/OpenAIGPT4VisionService";
-  import * as LZString from 'lz-string';
+  import * as LZString from "lz-string";
 
   let l_azureKey: string = "";
   let l_azureUrl: string = "";
@@ -111,7 +111,7 @@
   }
 </script>
 
-<div style="margin-top: 2em;">
+<div>
   <hr />
   <button on:click={() => (isFormOpen = !isFormOpen)}
     >{#if isFormOpen}Close{:else}Open{/if} Settings</button

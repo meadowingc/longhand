@@ -1,6 +1,9 @@
 # ✍ Longhand
 
-This application is designed to leverage the power of Azure's OCR (Optical Character Recognition) and OpenAI's GPT-4 to provide a seamless experience in processing and understanding images and text. It's built using Svelte with TypeScript and bundled with Vite for a modern, fast development experience.
+Longhand is a simple web-app that allows you to reliably extract handwritten text from photos, mainly oriented towards people that want to digitalize their journals and/or write blog posts with pen and paper.
+
+Check out [the wiki](https://codeberg.org/meadowingc/longhand/wiki/Home) for
+more information on how to run.
 
 ## Getting Started
 
