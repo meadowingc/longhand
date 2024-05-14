@@ -9,6 +9,7 @@
   let isLoading = false;
 
   let imageUrl = "";
+  let isGptStreaming = false;
   let imageFile: File | null = null;
 
   function handlePaste(event: ClipboardEvent) {
@@ -55,8 +56,18 @@
     try {
       const extractedText = await analyzeImage(imageFile);
       ocrText.set(extractedText);
-      const corrected = await correctText(extractedText, imageFile);
-      correctedText.set(corrected);
+
+      isGptStreaming = true;
+      await correctText(
+        extractedText,
+        imageFile,
+        (currentText: string, finished: boolean) => {
+          correctedText.set(currentText);
+          if (finished) {
+            isGptStreaming = false;
+          }
+        }
+      );
     } catch (error) {
       console.error("Error processing image:", error);
     } finally {
@@ -115,6 +126,9 @@
   <div class="row">
     <div class="col">
       <div>Corrected Text:</div>
+      {#if isGptStreaming }
+        <div><small>Loading ...</small></div>
+      {/if}
       <div class="card output-holder">
         {#if !isLoading || $correctedText !== ""}
           <pre>
