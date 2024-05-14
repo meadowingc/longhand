@@ -4,6 +4,8 @@
   import Toast from "./components/Toast.svelte";
 </script>
 
+<!-- add a logo? -->
+
 <main>
   <ApiKeysForm />
   <ImageUploadForm />
