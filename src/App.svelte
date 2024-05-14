@@ -21,7 +21,8 @@
 </main>
 
 <footer class="footer">
-  <p><small>Made with ❤️ by <a target="_blank" href="https://meadow.bearblog.dev/">Meadow</a></small></p>
+  <p class="with-love"><small>Made with ❤️ by <a target="_blank" href="https://meadow.bearblog.dev/">Meadow</a></small></p>
+  <div class="build-version"><small><i>Version: __commitHash__</i></small></div>
 </footer>
 
 <style>
@@ -40,5 +41,13 @@
 
   .footer {
     text-align: center;
+  }
+
+  .with-love {
+    margin-bottom: 0em;
+  }
+
+  .build-version {
+    margin-top: 0;
   }
 </style>
