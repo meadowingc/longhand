@@ -113,9 +113,22 @@
 
 <div>
   <hr />
-  <button on:click={() => (isFormOpen = !isFormOpen)}
-    >{#if isFormOpen}Close{:else}Open{/if} Settings</button
-  >
+  <div class="row config-botton-row">
+    <div class="col">
+      <button on:click={() => (isFormOpen = !isFormOpen)}
+        >{#if isFormOpen}Close{:else}Open{/if} Settings
+      </button>
+    </div>
+    {#if isFormOpen}
+      <div class="col">
+        <p style="text-align: right;">
+          <small>
+            Note: Settings are saved automatically and persist across reloads.
+          </small>
+        </p>
+      </div>
+    {/if}
+  </div>
   {#if isFormOpen}
     <form on:submit|preventDefault={saveApiKeys}>
       <div class="row">
@@ -125,17 +138,28 @@
             id="useAzureOpenAI"
             type="checkbox"
             bind:checked={l_useAzureOpenAIFlag}
+            on:change={saveApiKeys}
           />
         </div>
       </div>
       <div class="row">
         <div class="col">
           <label for="azureUrl">Azure Computer Vision Endpoint URL:</label>
-          <input id="azureUrl" type="text" bind:value={l_azureUrl} />
+          <input
+            id="azureUrl"
+            type="text"
+            bind:value={l_azureUrl}
+            on:change={saveApiKeys}
+          />
         </div>
         <div class="col">
           <label for="azureKey">Azure Computer Vision API Key:</label>
-          <input id="azureKey" type="text" bind:value={l_azureKey} />
+          <input
+            id="azureKey"
+            type="text"
+            bind:value={l_azureKey}
+            on:change={saveApiKeys}
+          />
         </div>
 
         <div class="col">
@@ -149,6 +173,7 @@
                   id="azureOpenAiEndpoint"
                   type="text"
                   bind:value={l_azureOpenAiEndpoint}
+                  on:change={saveApiKeys}
                 />
               </div>
             </div>
@@ -161,6 +186,7 @@
                   id="azureOpenAiDeployment"
                   type="text"
                   bind:value={l_azureOpenAiDeployment}
+                  on:change={saveApiKeys}
                 />
               </div>
             </div>
@@ -171,6 +197,7 @@
                   id="azureOpenAiVersion"
                   type="text"
                   bind:value={l_azureOpenAiVersion}
+                  on:change={saveApiKeys}
                 />
               </div>
             </div>
@@ -181,13 +208,19 @@
                   id="azureOpenAiKey"
                   type="text"
                   bind:value={l_azureOpenAiKey}
+                  on:change={saveApiKeys}
                 />
               </div>
             </div>
           {:else}
             <div class="row">
               <label for="openAiKey">OpenAI API Key:</label>
-              <input id="openAiKey" type="text" bind:value={l_openAiKey} />
+              <input
+                id="openAiKey"
+                type="text"
+                bind:value={l_openAiKey}
+                on:change={saveApiKeys}
+              />
             </div>
           {/if}
         </div>
@@ -197,7 +230,6 @@
         <div class="col config-button-holder" style="text-align: center;">
           <button type="button" on:click={exportConfig}>Export Config</button>
           <button type="button" on:click={importConfig}>Import Config</button>
-          <button class="button" type="submit">Save API Keys</button>
         </div>
       </div>
     </form>
@@ -208,5 +240,9 @@
 <style>
   .config-button-holder button {
     margin-top: 0.5em;
+  }
+
+  .config-botton-row .col {
+    margin-bottom: 0;
   }
 </style>
