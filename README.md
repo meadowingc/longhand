@@ -30,10 +30,20 @@ have access to it. Follow the steps below to obtain your keys:
 Note: _Azure Cognitive Services_ offers a free pricing tier that should be more
 than enough for personal use.
 
+### OpenAI API Key
+
+1. Sign up or log in to your account on the [OpenAI
+   website](https://openai.com/).
+2. Navigate to the "API Keys" section in the dashboard.
+3. Generate a new API key or use an existing one for your application.
+
+Once you have obtained your API keys, you can enter them into the application's
+configuration to start using the services.
+
 ### Azure OpenAI Service (Optional)
 
-If you have access to Azure OpenAI Service, you can use it directly by obtaining
-the necessary configuration details:
+If you would prefer to use Azure OpenAI Service, you can use it directly by
+obtaining the necessary configuration details:
 
 1. Go to the [Azure Portal](https://portal.azure.com/).
 2. Create a new OpenAI resource.
