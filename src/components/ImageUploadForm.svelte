@@ -110,23 +110,26 @@
     </div>
   {/if}
 
-  <div class="row">
-    <div class="col">
-      <div>OCR Text:</div>
-      <div class="card output-holder ocr-text">
-        {#if !isLoading || $ocrText !== ""}
-          {$ocrText}
-        {/if}
-        {#if isLoading && $ocrText === ""}
-          Loading OCR text...
-        {/if}
+  <!-- We only care about OCR output when working locally -->
+  {#if process.env.NODE_ENV !== "production"}
+    <div class="row">
+      <div class="col">
+        <div>OCR text:</div>
+        <div class="card output-holder ocr-text">
+          {#if !isLoading || $ocrText !== ""}
+            {$ocrText}
+          {/if}
+          {#if isLoading && $ocrText === ""}
+            Loading OCR text...
+          {/if}
+        </div>
       </div>
     </div>
-  </div>
+  {/if}
   <div class="row">
     <div class="col">
-      <div>Corrected Text:</div>
-      {#if isGptStreaming }
+      <div>Extracted text:</div>
+      {#if isGptStreaming}
         <div><small>Loading ...</small></div>
       {/if}
       <div class="card output-holder">
