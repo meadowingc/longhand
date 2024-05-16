@@ -106,13 +106,31 @@ Please output the corrected text in a clean and readable format, ready for use. 
   }
 
   let responseText = "";
+  let finishReason = "";
+  let lastChoice = undefined;
   for await (const chunk of responseStream) {
     let newOutput = chunk.choices[0]?.delta?.content || "";
+    finishReason = chunk.choices[0]?.finish_reason || "";
+    lastChoice = chunk.choices[0];
+
     responseText += newOutput;
     onStreamTokenCollaback(responseText, false);
   }
 
-  onStreamTokenCollaback(responseText, true);
+  if (finishReason === "content_filter") {
+    let newText = `${responseText}\n\nERROR: GPT response finished because of content filter:\n\n`;
+    newText += JSON.stringify(
+      (lastChoice as any)?.content_filter_results,
+      null,
+      2 // indent two spaces
+    );
+
+    newText = newText.trim();
+
+    onStreamTokenCollaback(newText, true);
+  } else {
+    onStreamTokenCollaback(responseText, true);
+  }
 }
 
 function blobToBase64(blob: Blob): Promise<string> {
