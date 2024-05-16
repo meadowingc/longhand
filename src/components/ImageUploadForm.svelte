@@ -74,6 +74,17 @@
       isLoading = false;
     }
   }
+
+  function copyToClipboard(text: string) {
+    navigator.clipboard.writeText(text).then(
+      () => {
+        toastMessage.set("Text copied to clipboard");
+      },
+      (err) => {
+        console.error("Could not copy text: ", err);
+      }
+    );
+  }
 </script>
 
 <div style="margin-top: 2em;">
@@ -133,16 +144,22 @@
         <div><small>Loading ...</small></div>
       {/if}
       <div class="card output-holder">
-        {#if !isLoading || $correctedText !== ""}
+        {#if isLoading}
+          {#if $ocrText === "" && $correctedText === ""}
+            Waiting for OCR text...
+          {:else if $ocrText !== "" && $correctedText === ""}
+            Loading corrected text...
+          {/if}
+        {:else if $correctedText !== ""}
+          <button
+            on:click={() => copyToClipboard($correctedText)}
+            class="copy-button"
+          >
+            Copy to clipboard
+          </button>
           <pre>
 {$correctedText}
 </pre>
-        {/if}
-        {#if isLoading && $ocrText === "" && $correctedText === ""}
-          Waiting for OCR text...
-        {/if}
-        {#if isLoading && $ocrText !== "" && $correctedText === ""}
-          Loading corrected text...
         {/if}
       </div>
     </div>
@@ -158,6 +175,11 @@
     max-height: 600px;
     overflow-y: auto;
     white-space: pre-wrap;
+  }
+
+  .copy-button {
+    font-size: 1em;
+    padding: 0.3em 0.5em;
   }
 
   .ocr-text {
