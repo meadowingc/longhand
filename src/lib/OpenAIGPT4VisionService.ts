@@ -114,7 +114,13 @@ Please output the corrected text in a clean and readable format, ready for use. 
     lastChoice = chunk.choices[0];
 
     responseText += newOutput;
-    onStreamTokenCollaback(responseText, false);
+
+    if (responseText.trim() === "") {
+      // show ellipses as a loading indicator if text is still empty
+      onStreamTokenCollaback("...", false);
+    } else {
+      onStreamTokenCollaback(responseText, false);
+    }
   }
 
   if (finishReason === "content_filter") {
