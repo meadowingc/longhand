@@ -96,7 +96,7 @@ Please output the corrected text in a clean and readable format, ready for use. 
 
     responseStream = await openai.chat.completions.create(
       {
-        model: "gpt-4-turbo",
+        model: "gpt-4o",
         messages: messages,
         max_tokens: 2048,
         stream: true,
