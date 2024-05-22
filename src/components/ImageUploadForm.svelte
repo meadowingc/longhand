@@ -4,17 +4,23 @@
   import { writable } from "svelte/store";
   import { toastMessage } from "../lib/toastService";
 
-  const ocrText = writable("");
-  const correctedText = writable("");
-  let isLoading = false;
+  class SessionImage {
+    constructor(
+      public imageUrl: string,
+      public imageFile: File,
+      public isLoading: boolean = false,
+      public isStreaming: boolean = false,
+      public ocrText: string = "",
+      public correctedText: string = ""
+    ) {}
+  }
 
-  let imageUrl = "";
-  let isGptStreaming = false;
-  let imageFile: File | null = null;
+  let sessionImages: SessionImage[] = [];
 
   function handlePaste(event: ClipboardEvent) {
     const items = event.clipboardData?.items;
     if (items) {
+      let imageFile = undefined;
       for (const item of items) {
         if (item.type.indexOf("image") === 0) {
           imageFile = item.getAsFile();
@@ -22,9 +28,15 @@
         }
       }
       if (imageFile) {
-        imageUrl = URL.createObjectURL(imageFile);
-        ocrText.set("");
-        correctedText.set("");
+        sessionImages = [
+          ...sessionImages,
+          new SessionImage(
+            URL.createObjectURL(imageFile),
+            imageFile,
+            false,
+            false
+          ),
+        ];
       }
     }
   }
@@ -37,42 +49,53 @@
     if (!input.files || input.files.length === 0) {
       return;
     }
-    imageFile = input.files[0];
-    if (imageFile) {
-      imageUrl = URL.createObjectURL(imageFile);
-      ocrText.set("");
-      correctedText.set("");
-    }
+    const newImages = Array.from(input.files).map(
+      (file) => new SessionImage(URL.createObjectURL(file), file, false, false)
+    );
+    sessionImages = [...sessionImages, ...newImages];
   }
 
-  async function processImage() {
-    if (!imageFile) {
+  async function processImages() {
+    if (sessionImages.length == 0) {
       toastMessage.set("No image file selected");
       return;
     }
 
-    isLoading = true;
+    sessionImages.forEach(async (sessionImg) => {
+      if (sessionImg.isLoading) {
+        // skip if we're already loading
+        return;
+      }
 
-    try {
-      const extractedText = await analyzeImage(imageFile);
-      ocrText.set(extractedText);
+      sessionImg.isLoading = true;
+      try {
+        const extractedText = await analyzeImage(sessionImg.imageFile);
+        sessionImg.ocrText = extractedText;
+        sessionImages = [...sessionImages];
 
-      isGptStreaming = true;
-      await correctText(
-        extractedText,
-        imageFile,
-        (currentText: string, finished: boolean) => {
-          correctedText.set(currentText);
-          if (finished) {
-            isGptStreaming = false;
+        sessionImg.isStreaming = true;
+        sessionImages = [...sessionImages];
+
+        await correctText(
+          extractedText,
+          sessionImg.imageFile,
+          (currentText: string, finished: boolean) => {
+            sessionImg.correctedText = currentText;
+            sessionImages = [...sessionImages];
+
+            if (finished) {
+              sessionImg.isStreaming = false;
+              sessionImages = [...sessionImages];
+            }
           }
-        }
-      );
-    } catch (error) {
-      console.error("Error processing image:", error);
-    } finally {
-      isLoading = false;
-    }
+        );
+      } catch (error) {
+        console.error("Error processing image:", error);
+      } finally {
+        sessionImg.isLoading = false;
+        sessionImages = [...sessionImages];
+      }
+    });
   }
 
   function copyToClipboard(text: string) {
@@ -95,75 +118,106 @@
         type="file"
         id="imageUpload"
         accept="image/*"
+        multiple
         on:change={handleFileSelect}
       />
     </div>
     <div class="col-3">
-      <button
-        type="button"
-        class="button primary"
-        style="width: 100%;"
-        on:click={processImage}>Process Image</button
-      >
+      <div class="row">
+        <button
+          type="button"
+          class="button primary"
+          style="width: 100%;"
+          on:click={processImages}>Process Images</button
+        >
+      </div>
+      <div class="row" style="margin-top: 0.5em;">
+        <button
+          type="button"
+          class="button"
+          style="width: 100%;"
+          on:click={() => {
+            sessionImages = [];
+          }}>Clear Session</button
+        >
+      </div>
     </div>
   </div>
 
-  {#if imageUrl}
+  {#each sessionImages as sessionImg, index (sessionImg)}
+    <div class="row">
+      <div class="col" style="text-align: left;">
+        <hr />
+        <h1>
+          Image {index + 1}
+          <span style="text-align: right;">
+            <button
+              type="button"
+              class="button"
+              on:click={() => {
+                sessionImages = sessionImages.filter((_, i) => i !== index);
+              }}>Remove</button
+            >
+          </span>
+        </h1>
+      </div>
+    </div>
+
     <div class="row">
       <div class="col" style="text-align: center;">
         <!-- svelte-ignore a11y-img-redundant-alt -->
         <img
-          src={imageUrl}
+          src={sessionImg.imageUrl}
           alt="Selected image"
           style="max-width: 100%; max-height: 20vh;"
         />
       </div>
     </div>
-  {/if}
 
-  <!-- We only care about OCR output when working locally -->
-  {#if process.env.NODE_ENV !== "production"}
+    <!-- We only care about OCR output when working locally -->
+    {#if process.env.NODE_ENV !== "production"}
+      <div class="row">
+        <div class="col">
+          <div>OCR text:</div>
+          <div class="card output-holder ocr-text">
+            {#if !sessionImg.isLoading || sessionImg.ocrText !== ""}
+              {sessionImg.ocrText}
+            {/if}
+            {#if sessionImg.isLoading && sessionImg.ocrText === ""}
+              Loading OCR text...
+            {/if}
+          </div>
+        </div>
+      </div>
+    {/if}
     <div class="row">
       <div class="col">
-        <div>OCR text:</div>
-        <div class="card output-holder ocr-text">
-          {#if !isLoading || $ocrText !== ""}
-            {$ocrText}
-          {/if}
-          {#if isLoading && $ocrText === ""}
-            Loading OCR text...
+        <div>Extracted text:</div>
+        {#if sessionImg.isStreaming}
+          <div><small>Loading ...</small></div>
+        {/if}
+        <div class="card output-holder">
+          {#if sessionImg.isLoading}
+            {#if sessionImg.ocrText === "" && sessionImg.correctedText === ""}
+              Waiting for OCR text...
+            {:else if sessionImg.ocrText !== "" && sessionImg.correctedText === ""}
+              Loading corrected text...
+            {/if}
+          {:else if sessionImg.correctedText !== ""}
+            <button
+              on:click={() => copyToClipboard(sessionImg.correctedText)}
+              class="copy-button"
+            >
+              Copy to clipboard
+            </button>
+            <pre>
+{sessionImg.correctedText}
+</pre>
           {/if}
         </div>
       </div>
     </div>
-  {/if}
-  <div class="row">
-    <div class="col">
-      <div>Extracted text:</div>
-      {#if isGptStreaming}
-        <div><small>Loading ...</small></div>
-      {/if}
-      <div class="card output-holder">
-        {#if isLoading}
-          {#if $ocrText === "" && $correctedText === ""}
-            Waiting for OCR text...
-          {:else if $ocrText !== "" && $correctedText === ""}
-            Loading corrected text...
-          {/if}
-        {:else if $correctedText !== ""}
-          <button
-            on:click={() => copyToClipboard($correctedText)}
-            class="copy-button"
-          >
-            Copy to clipboard
-          </button>
-          <pre>
-{$correctedText}
-</pre>
-        {/if}
-      </div>
-    </div>
-  </div>
+  {/each}
 </div>
 
 <style>
