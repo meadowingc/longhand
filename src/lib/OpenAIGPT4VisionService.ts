@@ -12,6 +12,7 @@ const azureOpenAiEndpoint = writable<string>("");
 const azureOpenAiDeployment = writable<string>("");
 const azureOpenAiKey = writable<string>("");
 const azureOpenAiVersion = writable<string>("");
+const customExtraPrompt = writable<string>("");
 
 async function correctText(
   ocrText: string,
@@ -20,10 +21,7 @@ async function correctText(
 ) {
   const base64Image = await blobToBase64(image);
 
-  const messages: Array<ChatCompletionMessageParam> = [
-    {
-      role: "system",
-      content: `
+  let systemPrompt = `
 You are an advanced AI trained to correct errors in text extracted from images of handwritten documents. The user will provide you two inputs:
 
 1. The raw text of that image as extracted by an OCR (Optical Character Recognition) process.
@@ -34,7 +32,22 @@ Your output should consist solely of the corrected text. You are to make no othe
 The OCR process will often output incorrect text so it's up to you to correct a character or word that doesn't seem to make sense in its context. Other than that you should leave the text unchaged so as to preserve the look and feeling of the original.
 
 Please output the corrected text in a clean and readable format, ready for use. Please represent as proper markdown any text formatting that you see in the picture: paragraph breaks, lists, and quotes, etc.
-`,
+`;
+
+  if (get(customExtraPrompt).trim() !== "") {
+    systemPrompt += `
+The user of the application, who wrote the text you are correcting, has provided the following additional prompt:
+
+\`\`\`
+${get(customExtraPrompt)}
+\`\`\`
+`;
+  }
+
+  const messages: Array<ChatCompletionMessageParam> = [
+    {
+      role: "system",
+      content: systemPrompt,
     },
     {
       role: "user",
@@ -160,4 +173,5 @@ export {
   correctText,
   openAiApiKey,
   useAzureOpenAI,
+  customExtraPrompt,
 };

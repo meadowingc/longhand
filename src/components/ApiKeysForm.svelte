@@ -9,6 +9,7 @@
     azureOpenAiDeployment,
     azureOpenAiKey,
     azureOpenAiVersion,
+    customExtraPrompt,
   } from "../lib/OpenAIGPT4VisionService";
   import * as LZString from "lz-string";
 
@@ -20,6 +21,7 @@
   let l_azureOpenAiDeployment: string = "";
   let l_azureOpenAiKey: string = "";
   let l_azureOpenAiVersion: string = "";
+  let l_customExtraPrompt: string = "";
 
   let isFormOpen = true;
 
@@ -33,13 +35,15 @@
       getFromLocalStorage("azureOpenAiDeployment") || "";
     l_azureOpenAiKey = getFromLocalStorage("azureOpenAiKey") || "";
     l_azureOpenAiVersion = getFromLocalStorage("azureOpenAiVersion") || "";
+    l_customExtraPrompt = getFromLocalStorage("customExtraPrompt") || "";
 
     isFormOpen =
       !l_azureKey || !l_azureUrl || l_useAzureOpenAIFlag
         ? !l_azureOpenAiEndpoint ||
           !l_azureOpenAiDeployment ||
           !l_azureOpenAiKey ||
-          !l_azureOpenAiVersion
+          !l_azureOpenAiVersion ||
+          !l_customExtraPrompt
         : !l_openAiKey;
 
     azureApiKey.set(l_azureKey);
@@ -50,6 +54,7 @@
     azureOpenAiDeployment.set(l_azureOpenAiDeployment);
     azureOpenAiKey.set(l_azureOpenAiKey);
     azureOpenAiVersion.set(l_azureOpenAiVersion);
+    customExtraPrompt.set(l_customExtraPrompt);
   });
 
   function saveApiKeys() {
@@ -61,6 +66,7 @@
     saveToLocalStorage("azureOpenAiDeployment", l_azureOpenAiDeployment);
     saveToLocalStorage("azureOpenAiKey", l_azureOpenAiKey);
     saveToLocalStorage("azureOpenAiVersion", l_azureOpenAiVersion);
+    saveToLocalStorage("customExtraPrompt", l_customExtraPrompt);
 
     azureApiKey.set(l_azureKey);
     azureEndpoint.set(l_azureUrl);
@@ -70,6 +76,7 @@
     azureOpenAiDeployment.set(l_azureOpenAiDeployment);
     azureOpenAiKey.set(l_azureOpenAiKey);
     azureOpenAiVersion.set(l_azureOpenAiVersion);
+    customExtraPrompt.set(l_customExtraPrompt);
   }
 
   function exportConfig() {
@@ -82,6 +89,7 @@
       azureOpenAiDeployment: l_azureOpenAiDeployment,
       azureOpenAiKey: l_azureOpenAiKey,
       azureOpenAiVersion: l_azureOpenAiVersion,
+      customExtraPrompt: l_customExtraPrompt,
     };
     const configStr = JSON.stringify(config);
     const compressedConfigStr = LZString.compressToUTF16(configStr);
@@ -102,6 +110,7 @@
         l_azureOpenAiDeployment = config.azureOpenAiDeployment || "";
         l_azureOpenAiKey = config.azureOpenAiKey || "";
         l_azureOpenAiVersion = config.azureOpenAiVersion || "";
+        l_customExtraPrompt = config.customExtraPrompt || "";
 
         saveApiKeys();
       } catch (e: any) {
@@ -223,6 +232,17 @@
               />
             </div>
           {/if}
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col" >
+          <label for="customExtraPrompt">Extra prompt for model:</label>
+          <textarea
+            id="customExtraPrompt"
+            bind:value={l_customExtraPrompt}
+            on:change={saveApiKeys}
+          ></textarea>
         </div>
       </div>
 
