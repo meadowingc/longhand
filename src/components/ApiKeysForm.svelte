@@ -10,6 +10,7 @@
     azureOpenAiKey,
     azureOpenAiVersion,
     customExtraPrompt,
+    threadOutputsFromOneRequestToTheNext,
   } from "../lib/OpenAIGPT4VisionService";
   import * as LZString from "lz-string";
 
@@ -22,6 +23,7 @@
   let l_azureOpenAiKey: string = "";
   let l_azureOpenAiVersion: string = "";
   let l_customExtraPrompt: string = "";
+  let l_threadOutputsFromOneRequestToTheNext: boolean = false;
 
   let isFormOpen = true;
 
@@ -36,14 +38,15 @@
     l_azureOpenAiKey = getFromLocalStorage("azureOpenAiKey") || "";
     l_azureOpenAiVersion = getFromLocalStorage("azureOpenAiVersion") || "";
     l_customExtraPrompt = getFromLocalStorage("customExtraPrompt") || "";
+    l_threadOutputsFromOneRequestToTheNext =
+      getFromLocalStorage("threadOutputsFromOneRequestToTheNext") === "true";
 
     isFormOpen =
       !l_azureKey || !l_azureUrl || l_useAzureOpenAIFlag
         ? !l_azureOpenAiEndpoint ||
           !l_azureOpenAiDeployment ||
           !l_azureOpenAiKey ||
-          !l_azureOpenAiVersion ||
-          !l_customExtraPrompt
+          !l_azureOpenAiVersion
         : !l_openAiKey;
 
     azureApiKey.set(l_azureKey);
@@ -55,6 +58,9 @@
     azureOpenAiKey.set(l_azureOpenAiKey);
     azureOpenAiVersion.set(l_azureOpenAiVersion);
     customExtraPrompt.set(l_customExtraPrompt);
+    threadOutputsFromOneRequestToTheNext.set(
+      l_threadOutputsFromOneRequestToTheNext,
+    );
   });
 
   function saveApiKeys() {
@@ -67,6 +73,10 @@
     saveToLocalStorage("azureOpenAiKey", l_azureOpenAiKey);
     saveToLocalStorage("azureOpenAiVersion", l_azureOpenAiVersion);
     saveToLocalStorage("customExtraPrompt", l_customExtraPrompt);
+    saveToLocalStorage(
+      "threadOutputsFromOneRequestToTheNext",
+      l_threadOutputsFromOneRequestToTheNext.toString(),
+    );
 
     azureApiKey.set(l_azureKey);
     azureEndpoint.set(l_azureUrl);
@@ -77,6 +87,9 @@
     azureOpenAiKey.set(l_azureOpenAiKey);
     azureOpenAiVersion.set(l_azureOpenAiVersion);
     customExtraPrompt.set(l_customExtraPrompt);
+    threadOutputsFromOneRequestToTheNext.set(
+      l_threadOutputsFromOneRequestToTheNext,
+    );
   }
 
   function exportConfig() {
@@ -90,6 +103,8 @@
       azureOpenAiKey: l_azureOpenAiKey,
       azureOpenAiVersion: l_azureOpenAiVersion,
       customExtraPrompt: l_customExtraPrompt,
+      threadOutputsFromOneRequestToTheNext:
+        l_threadOutputsFromOneRequestToTheNext,
     };
     const configStr = JSON.stringify(config);
     const compressedConfigStr = LZString.compressToUTF16(configStr);
@@ -111,6 +126,8 @@
         l_azureOpenAiKey = config.azureOpenAiKey || "";
         l_azureOpenAiVersion = config.azureOpenAiVersion || "";
         l_customExtraPrompt = config.customExtraPrompt || "";
+        l_threadOutputsFromOneRequestToTheNext =
+          config.threadOutputsFromOneRequestToTheNext || false;
 
         saveApiKeys();
       } catch (e: any) {
@@ -142,13 +159,30 @@
     <form on:submit|preventDefault={saveApiKeys}>
       <div class="row">
         <div class="col" style="text-align: right;">
-          <label for="useAzureOpenAI">Use Azure OpenAI Service:</label>
-          <input
-            id="useAzureOpenAI"
-            type="checkbox"
-            bind:checked={l_useAzureOpenAIFlag}
-            on:change={saveApiKeys}
-          />
+          <div class="row">
+            <div class="col">
+              <label for="useAzureOpenAI">Use Azure OpenAI Service:</label>
+              <input
+                id="useAzureOpenAI"
+                type="checkbox"
+                bind:checked={l_useAzureOpenAIFlag}
+                on:change={saveApiKeys}
+              />
+            </div>
+          </div>
+          <div class="row">
+            <div class="col">
+              <label for="threadOutputsFromOneRequestToTheNext"
+                >Thread outputs from one request to the next:</label
+              >
+              <input
+                id="threadOutputsFromOneRequestToTheNext"
+                type="checkbox"
+                bind:checked={l_threadOutputsFromOneRequestToTheNext}
+                on:change={saveApiKeys}
+              />
+            </div>
+          </div>
         </div>
       </div>
       <div class="row">
@@ -236,7 +270,7 @@
       </div>
 
       <div class="row">
-        <div class="col" >
+        <div class="col">
           <label for="customExtraPrompt">Extra prompt for model:</label>
           <textarea
             id="customExtraPrompt"

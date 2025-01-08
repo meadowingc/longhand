@@ -7,6 +7,7 @@ import { toastMessage } from "./toastService";
 
 const openAiApiKey = writable<string>("");
 
+const threadOutputsFromOneRequestToTheNext = writable<boolean>(false);
 const useAzureOpenAI = writable<boolean>(false);
 const azureOpenAiEndpoint = writable<string>("");
 const azureOpenAiDeployment = writable<string>("");
@@ -17,6 +18,7 @@ const customExtraPrompt = writable<string>("");
 async function correctText(
   ocrText: string,
   image: Blob,
+  previousTexts: string[],
   onStreamTokenCollaback: (currentText: string, finished: boolean) => void
 ) {
   const base64Image = await blobToBase64(image);
@@ -34,6 +36,16 @@ The OCR process will often output incorrect text so it's up to you to correct a 
 Please output the corrected text in a clean and readable format, ready for use. Please represent as proper markdown any text formatting that you see in the picture: paragraph breaks, lists, and quotes, etc.
 `;
 
+  if (previousTexts.length > 0) {
+    systemPrompt += `
+The image you've been provided is part of a sequence of images. This is the text extracted from the previous images in the sequence:
+
+\`\`\`
+${previousTexts.join("\n\n")}
+\`\`\`
+`;
+  }
+
   if (get(customExtraPrompt).trim() !== "") {
     systemPrompt += `
 The user of the application, who wrote the text you are correcting, has provided the following additional prompt:
@@ -43,6 +55,7 @@ ${get(customExtraPrompt)}
 \`\`\`
 `;
   }
+
 
   const messages: Array<ChatCompletionMessageParam> = [
     {
@@ -174,4 +187,5 @@ export {
   openAiApiKey,
   useAzureOpenAI,
   customExtraPrompt,
+  threadOutputsFromOneRequestToTheNext,
 };

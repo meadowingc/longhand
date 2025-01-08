@@ -1,8 +1,12 @@
 <script lang="ts">
   import { analyzeImage } from "../lib/AzureOcrService";
-  import { correctText } from "../lib/OpenAIGPT4VisionService";
+  import {
+    correctText,
+    threadOutputsFromOneRequestToTheNext,
+  } from "../lib/OpenAIGPT4VisionService";
   import { writable } from "svelte/store";
   import { toastMessage } from "../lib/toastService";
+  import { get } from "svelte/store";
 
   class SessionImage {
     constructor(
@@ -11,7 +15,7 @@
       public isLoading: boolean = false,
       public isStreaming: boolean = false,
       public ocrText: string = "",
-      public correctedText: string = ""
+      public correctedText: string = "",
     ) {}
   }
 
@@ -34,7 +38,7 @@
             URL.createObjectURL(imageFile),
             imageFile,
             false,
-            false
+            false,
           ),
         ];
       }
@@ -50,7 +54,7 @@
       return;
     }
     const newImages = Array.from(input.files).map(
-      (file) => new SessionImage(URL.createObjectURL(file), file, false, false)
+      (file) => new SessionImage(URL.createObjectURL(file), file, false, false),
     );
     sessionImages = [...sessionImages, ...newImages];
   }
@@ -61,41 +65,88 @@
       return;
     }
 
-    sessionImages.forEach(async (sessionImg) => {
-      if (sessionImg.isLoading) {
-        // skip if we're already loading
-        return;
-      }
-
-      sessionImg.isLoading = true;
-      try {
+    await new Promise<void>(async (resolve) => {
+      for (const sessionImg of sessionImages) {
+        sessionImg.isLoading = true;
         const extractedText = await analyzeImage(sessionImg.imageFile);
         sessionImg.ocrText = extractedText;
         sessionImages = [...sessionImages];
-
-        sessionImg.isStreaming = true;
-        sessionImages = [...sessionImages];
-
-        await correctText(
-          extractedText,
-          sessionImg.imageFile,
-          (currentText: string, finished: boolean) => {
-            sessionImg.correctedText = currentText;
-            sessionImages = [...sessionImages];
-
-            if (finished) {
-              sessionImg.isStreaming = false;
-              sessionImages = [...sessionImages];
-            }
-          }
-        );
-      } catch (error) {
-        console.error("Error processing image:", error);
-      } finally {
-        sessionImg.isLoading = false;
-        sessionImages = [...sessionImages];
       }
+
+      resolve();
     });
+
+    if (get(threadOutputsFromOneRequestToTheNext)) {
+      // do one at a time and pass the output of one to the next so that GPT has more context when correcting
+      // this is useful when the images are related or build
+      const previousCorrectedTexts: string[] = [];
+      for (const sessionImg of sessionImages) {
+        try {
+          sessionImg.isStreaming = true;
+          sessionImages = [...sessionImages];
+
+          await new Promise<void>((resolve) => {
+            correctText(
+              sessionImg.ocrText,
+              sessionImg.imageFile,
+              previousCorrectedTexts,
+              (currentText: string, finished: boolean) => {
+                sessionImg.correctedText = currentText;
+                sessionImages = [...sessionImages];
+
+                if (finished) {
+                  sessionImg.isStreaming = false;
+                  previousCorrectedTexts.push(currentText);
+                  sessionImages = [...sessionImages];
+
+                  resolve();
+                }
+              },
+            );
+          });
+
+          sessionImages = [...sessionImages];
+        } catch (error) {
+          console.error("Error processing image:", error);
+        } finally {
+          sessionImg.isLoading = false;
+          sessionImages = [...sessionImages];
+        }
+      }
+    } else {
+      // just process everything in parallel
+      sessionImages.forEach(async (sessionImg) => {
+        if (sessionImg.isLoading) {
+          // skip if we're already loading
+          return;
+        }
+
+        try {
+          sessionImg.isStreaming = true;
+          sessionImages = [...sessionImages];
+
+          await correctText(
+            sessionImg.ocrText,
+            sessionImg.imageFile,
+            [],
+            (currentText: string, finished: boolean) => {
+              sessionImg.correctedText = currentText;
+              sessionImages = [...sessionImages];
+
+              if (finished) {
+                sessionImg.isStreaming = false;
+                sessionImages = [...sessionImages];
+              }
+            },
+          );
+        } catch (error) {
+          console.error("Error processing image:", error);
+        } finally {
+          sessionImg.isLoading = false;
+          sessionImages = [...sessionImages];
+        }
+      });
+    }
   }
 
   function copyToClipboard(text: string) {
@@ -105,7 +156,7 @@
       },
       (err) => {
         console.error("Could not copy text: ", err);
-      }
+      },
     );
   }
 </script>
