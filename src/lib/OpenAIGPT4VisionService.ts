@@ -43,6 +43,8 @@ The image you've been provided is part of a sequence of images. This is the text
 \`\`\`
 ${previousTexts.join("\n\n")}
 \`\`\`
+
+In your output, please only provide the corrected text for the current image. Do not include the text from the previous images.
 `;
   }
 
