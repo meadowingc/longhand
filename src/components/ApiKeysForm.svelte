@@ -1,9 +1,12 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { saveToLocalStorage, getFromLocalStorage } from "../lib/LocalStorage";
-  import { azureApiKey, azureEndpoint } from "../lib/AzureOcrService";
   import {
     openAiApiKey,
+    openAiBaseUrl,
+    openAiModel,
+    DEFAULT_BASE_URL,
+    DEFAULT_MODEL,
     useAzureOpenAI,
     azureOpenAiEndpoint,
     azureOpenAiDeployment,
@@ -14,9 +17,9 @@
   } from "../lib/OpenAIGPT4VisionService";
   import * as LZString from "lz-string";
 
-  let l_azureKey: string = "";
-  let l_azureUrl: string = "";
   let l_openAiKey: string = "";
+  let l_openAiBaseUrl: string = DEFAULT_BASE_URL;
+  let l_openAiModel: string = DEFAULT_MODEL;
   let l_useAzureOpenAIFlag: boolean = false;
   let l_azureOpenAiEndpoint: string = "";
   let l_azureOpenAiDeployment: string = "";
@@ -28,9 +31,11 @@
   let isFormOpen = true;
 
   onMount(() => {
-    l_azureKey = getFromLocalStorage("azureApiKey") || "";
-    l_azureUrl = getFromLocalStorage("azureEndpoint") || "";
+    localStorage.removeItem("azureApiKey");
+    localStorage.removeItem("azureEndpoint");
     l_openAiKey = getFromLocalStorage("openAiApiKey") || "";
+    l_openAiBaseUrl = getFromLocalStorage("openAiBaseUrl") ?? DEFAULT_BASE_URL;
+    l_openAiModel = getFromLocalStorage("openAiModel") ?? DEFAULT_MODEL;
     l_useAzureOpenAIFlag = getFromLocalStorage("useAzureOpenAI") === "true";
     l_azureOpenAiEndpoint = getFromLocalStorage("azureOpenAiEndpoint") || "";
     l_azureOpenAiDeployment =
@@ -42,16 +47,16 @@
       getFromLocalStorage("threadOutputsFromOneRequestToTheNext") === "true";
 
     isFormOpen =
-      !l_azureKey || !l_azureUrl || l_useAzureOpenAIFlag
+      l_useAzureOpenAIFlag
         ? !l_azureOpenAiEndpoint ||
           !l_azureOpenAiDeployment ||
           !l_azureOpenAiKey ||
           !l_azureOpenAiVersion
-        : !l_openAiKey;
+        : !l_openAiKey || !l_openAiBaseUrl || !l_openAiModel;
 
-    azureApiKey.set(l_azureKey);
-    azureEndpoint.set(l_azureUrl);
     openAiApiKey.set(l_openAiKey);
+    openAiBaseUrl.set(l_openAiBaseUrl);
+    openAiModel.set(l_openAiModel);
     useAzureOpenAI.set(l_useAzureOpenAIFlag);
     azureOpenAiEndpoint.set(l_azureOpenAiEndpoint);
     azureOpenAiDeployment.set(l_azureOpenAiDeployment);
@@ -64,9 +69,12 @@
   });
 
   function saveApiKeys() {
-    saveToLocalStorage("azureApiKey", l_azureKey);
-    saveToLocalStorage("azureEndpoint", l_azureUrl);
+    l_openAiKey = l_openAiKey.trim();
+    l_openAiBaseUrl = l_openAiBaseUrl.trim().replace(/\/+$/, "");
+    l_openAiModel = l_openAiModel.trim();
     saveToLocalStorage("openAiApiKey", l_openAiKey);
+    saveToLocalStorage("openAiBaseUrl", l_openAiBaseUrl);
+    saveToLocalStorage("openAiModel", l_openAiModel);
     saveToLocalStorage("useAzureOpenAI", l_useAzureOpenAIFlag.toString());
     saveToLocalStorage("azureOpenAiEndpoint", l_azureOpenAiEndpoint);
     saveToLocalStorage("azureOpenAiDeployment", l_azureOpenAiDeployment);
@@ -78,9 +86,9 @@
       l_threadOutputsFromOneRequestToTheNext.toString(),
     );
 
-    azureApiKey.set(l_azureKey);
-    azureEndpoint.set(l_azureUrl);
     openAiApiKey.set(l_openAiKey);
+    openAiBaseUrl.set(l_openAiBaseUrl);
+    openAiModel.set(l_openAiModel);
     useAzureOpenAI.set(l_useAzureOpenAIFlag);
     azureOpenAiEndpoint.set(l_azureOpenAiEndpoint);
     azureOpenAiDeployment.set(l_azureOpenAiDeployment);
@@ -94,9 +102,9 @@
 
   function exportConfig() {
     const config = {
-      azureApiKey: l_azureKey,
-      azureEndpoint: l_azureUrl,
       openAiApiKey: l_openAiKey,
+      openAiBaseUrl: l_openAiBaseUrl,
+      openAiModel: l_openAiModel,
       useAzureOpenAI: l_useAzureOpenAIFlag,
       azureOpenAiEndpoint: l_azureOpenAiEndpoint,
       azureOpenAiDeployment: l_azureOpenAiDeployment,
@@ -108,7 +116,7 @@
     };
     const configStr = JSON.stringify(config);
     const compressedConfigStr = LZString.compressToUTF16(configStr);
-    prompt("Here is your configuration:", compressedConfigStr);
+    prompt("Here is your configuration. It contains API keys: keep it private.", compressedConfigStr);
   }
 
   function importConfig() {
@@ -117,9 +125,18 @@
       try {
         const configStr = LZString.decompressFromUTF16(compressedConfigStr);
         const config = JSON.parse(configStr);
-        l_azureKey = config.azureApiKey || "";
-        l_azureUrl = config.azureEndpoint || "";
+        if (!config || typeof config !== "object" || Array.isArray(config)) {
+          throw new Error("Configuration must be an object.");
+        }
+        for (const key of ["openAiApiKey", "openAiBaseUrl", "openAiModel", "azureOpenAiEndpoint", "azureOpenAiDeployment", "azureOpenAiKey", "azureOpenAiVersion", "customExtraPrompt"]) {
+          if (key in config && typeof config[key] !== "string") throw new Error(`${key} must be text.`);
+        }
+        for (const key of ["useAzureOpenAI", "threadOutputsFromOneRequestToTheNext"]) {
+          if (key in config && typeof config[key] !== "boolean") throw new Error(`${key} must be true or false.`);
+        }
         l_openAiKey = config.openAiApiKey || "";
+        l_openAiBaseUrl = config.openAiBaseUrl ?? DEFAULT_BASE_URL;
+        l_openAiModel = config.openAiModel ?? DEFAULT_MODEL;
         l_useAzureOpenAIFlag = config.useAzureOpenAI || false;
         l_azureOpenAiEndpoint = config.azureOpenAiEndpoint || "";
         l_azureOpenAiDeployment = config.azureOpenAiDeployment || "";
@@ -130,8 +147,8 @@
           config.threadOutputsFromOneRequestToTheNext || false;
 
         saveApiKeys();
-      } catch (e: any) {
-        alert("Failed to import configuration: " + e.message);
+      } catch (error: unknown) {
+        alert("Failed to import configuration: " + (error instanceof Error ? error.message : "Invalid configuration."));
       }
     }
   }
@@ -150,6 +167,8 @@
         <p style="text-align: right;">
           <small>
             Note: Settings are saved automatically and persist across reloads.
+            API keys are stored unencrypted in this browser. Images and any threaded
+            text are sent directly to your selected provider.
           </small>
         </p>
       </div>
@@ -173,7 +192,7 @@
           <div class="row">
             <div class="col">
               <label for="threadOutputsFromOneRequestToTheNext"
-                >Thread outputs from one request to the next:</label
+                >Process sequentially, using previous images' text as context:</label
               >
               <input
                 id="threadOutputsFromOneRequestToTheNext"
@@ -186,25 +205,6 @@
         </div>
       </div>
       <div class="row">
-        <div class="col">
-          <label for="azureUrl">Azure Computer Vision Endpoint URL:</label>
-          <input
-            id="azureUrl"
-            type="text"
-            bind:value={l_azureUrl}
-            on:change={saveApiKeys}
-          />
-        </div>
-        <div class="col">
-          <label for="azureKey">Azure Computer Vision API Key:</label>
-          <input
-            id="azureKey"
-            type="text"
-            bind:value={l_azureKey}
-            on:change={saveApiKeys}
-          />
-        </div>
-
         <div class="col">
           {#if l_useAzureOpenAIFlag}
             <div class="row">
@@ -235,7 +235,7 @@
             </div>
             <div class="row">
               <div class="col">
-                <label for="azureOpenAiKey">Azure OpenAI Version:</label>
+                <label for="azureOpenAiVersion">Azure OpenAI Version:</label>
                 <input
                   id="azureOpenAiVersion"
                   type="text"
@@ -249,7 +249,7 @@
                 <label for="azureOpenAiKey">Azure OpenAI Key:</label>
                 <input
                   id="azureOpenAiKey"
-                  type="text"
+                  type="password"
                   bind:value={l_azureOpenAiKey}
                   on:change={saveApiKeys}
                 />
@@ -257,13 +257,43 @@
             </div>
           {:else}
             <div class="row">
-              <label for="openAiKey">OpenAI API Key:</label>
+              <label for="openAiKey">Provider API Key:</label>
               <input
                 id="openAiKey"
-                type="text"
+                type="password"
                 bind:value={l_openAiKey}
                 on:change={saveApiKeys}
               />
+            </div>
+            <div class="row">
+              <label for="openAiBaseUrl">OpenAI-compatible API Base URL:</label>
+              <input
+                id="openAiBaseUrl"
+                type="url"
+                placeholder={DEFAULT_BASE_URL}
+                bind:value={l_openAiBaseUrl}
+                on:change={saveApiKeys}
+              />
+              <small>
+                OpenAI: https://api.openai.com/v1.
+                OpenRouter: https://openrouter.ai/api/v1.
+                Do not include /chat/completions. Custom endpoints must allow
+                browser requests (CORS); an HTTPS app requires an HTTPS endpoint.
+              </small>
+            </div>
+            <div class="row">
+              <label for="openAiModel">Vision Model ID:</label>
+              <input
+                id="openAiModel"
+                type="text"
+                placeholder={DEFAULT_MODEL}
+                bind:value={l_openAiModel}
+                on:change={saveApiKeys}
+              />
+              <small>
+                Must support images. OpenRouter uses prefixed IDs such as
+                openai/gpt-4o. A ChatGPT subscription does not include API credits.
+              </small>
             </div>
           {/if}
         </div>

@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { analyzeImage } from "../lib/AzureOcrService";
+  import { onDestroy } from "svelte";
   import {
-    correctText,
+    transcribeImage,
+    formatModelError,
     threadOutputsFromOneRequestToTheNext,
   } from "../lib/OpenAIGPT4VisionService";
-  import { writable } from "svelte/store";
   import { toastMessage } from "../lib/toastService";
   import { get } from "svelte/store";
 
@@ -14,12 +14,13 @@
       public imageFile: File,
       public isLoading: boolean = false,
       public isStreaming: boolean = false,
-      public ocrText: string = "",
       public correctedText: string = "",
+      public error: string = "",
     ) {}
   }
 
   let sessionImages: SessionImage[] = [];
+  let isProcessing = false;
 
   function handlePaste(event: ClipboardEvent) {
     const items = event.clipboardData?.items;
@@ -45,8 +46,21 @@
     }
   }
 
-  // Listen for paste events
   window.addEventListener("paste", handlePaste);
+  onDestroy(() => {
+    window.removeEventListener("paste", handlePaste);
+    sessionImages.forEach((image) => URL.revokeObjectURL(image.imageUrl));
+  });
+
+  function removeImage(index: number) {
+    URL.revokeObjectURL(sessionImages[index].imageUrl);
+    sessionImages = sessionImages.filter((_, i) => i !== index);
+  }
+
+  function clearSession() {
+    sessionImages.forEach((image) => URL.revokeObjectURL(image.imageUrl));
+    sessionImages = [];
+  }
 
   function handleFileSelect(event: Event) {
     const input = event.target as HTMLInputElement;
@@ -60,92 +74,56 @@
   }
 
   async function processImages() {
-    if (sessionImages.length == 0) {
+    if (isProcessing) return;
+    if (sessionImages.length === 0) {
       toastMessage.set("No image file selected");
       return;
     }
 
-    await new Promise<void>(async (resolve) => {
-      for (const sessionImg of sessionImages) {
-        sessionImg.isLoading = true;
-        const extractedText = await analyzeImage(sessionImg.imageFile);
-        sessionImg.ocrText = extractedText;
-        sessionImages = [...sessionImages];
+    isProcessing = true;
+    const images = [...sessionImages];
+    try {
+      if (get(threadOutputsFromOneRequestToTheNext)) {
+        const previousTexts: string[] = [];
+        for (const image of images) {
+          const text = await processImage(image, previousTexts);
+          if (text !== undefined) previousTexts.push(text);
+          else {
+            toastMessage.set(`${image.error} Sequential processing stopped; remaining images were not sent.`);
+            break;
+          }
+        }
+      } else {
+        await Promise.all(images.map((image) => processImage(image, [])));
       }
+    } finally {
+      isProcessing = false;
+    }
+  }
 
-      resolve();
-    });
-
-    if (get(threadOutputsFromOneRequestToTheNext)) {
-      // do one at a time and pass the output of one to the next so that GPT has more context when correcting
-      // this is useful when the images are related or build
-      const previousCorrectedTexts: string[] = [];
-      for (const sessionImg of sessionImages) {
-        try {
-          sessionImg.isStreaming = true;
+  async function processImage(image: SessionImage, previousTexts: string[]) {
+    image.isLoading = true;
+    image.isStreaming = true;
+    image.correctedText = "";
+    image.error = "";
+    sessionImages = [...sessionImages];
+    try {
+      return await transcribeImage(
+        image.imageFile,
+        previousTexts,
+        (currentText: string) => {
+          image.correctedText = currentText;
           sessionImages = [...sessionImages];
-
-          await new Promise<void>((resolve) => {
-            correctText(
-              sessionImg.ocrText,
-              sessionImg.imageFile,
-              previousCorrectedTexts,
-              (currentText: string, finished: boolean) => {
-                sessionImg.correctedText = currentText;
-                sessionImages = [...sessionImages];
-
-                if (finished) {
-                  sessionImg.isStreaming = false;
-                  previousCorrectedTexts.push(currentText);
-                  sessionImages = [...sessionImages];
-
-                  resolve();
-                }
-              },
-            );
-          });
-
-          sessionImages = [...sessionImages];
-        } catch (error) {
-          console.error("Error processing image:", error);
-        } finally {
-          sessionImg.isLoading = false;
-          sessionImages = [...sessionImages];
-        }
-      }
-    } else {
-      // just process everything in parallel
-      sessionImages.forEach(async (sessionImg) => {
-        if (sessionImg.isLoading) {
-          // skip if we're already loading
-          return;
-        }
-
-        try {
-          sessionImg.isStreaming = true;
-          sessionImages = [...sessionImages];
-
-          await correctText(
-            sessionImg.ocrText,
-            sessionImg.imageFile,
-            [],
-            (currentText: string, finished: boolean) => {
-              sessionImg.correctedText = currentText;
-              sessionImages = [...sessionImages];
-
-              if (finished) {
-                sessionImg.isStreaming = false;
-                sessionImages = [...sessionImages];
-              }
-            },
-          );
-        } catch (error) {
-          console.error("Error processing image:", error);
-        } finally {
-          sessionImg.isLoading = false;
-          sessionImages = [...sessionImages];
-        }
-      });
+        },
+      );
+    } catch (error) {
+      console.error("Error processing image:", error);
+      image.error = formatModelError(error);
+      toastMessage.set(image.error);
+    } finally {
+      image.isLoading = false;
+      image.isStreaming = false;
+      sessionImages = [...sessionImages];
     }
   }
 
@@ -156,19 +134,20 @@
       },
       (err) => {
         console.error("Could not copy text: ", err);
+        toastMessage.set("Could not copy text. Select and copy the displayed text manually.");
       },
     );
   }
 </script>
 
 <div style="margin-top: 2em;">
-  <label for="imageUpload">Upload (or paste with Ctrl+V) an image</label>
+  <label for="imageUpload">Upload or paste images to transcribe</label>
   <div class="row">
     <div class="col-9">
       <input
         type="file"
         id="imageUpload"
-        accept="image/*"
+        accept="image/jpeg,image/png,image/webp,image/gif"
         multiple
         on:change={handleFileSelect}
       />
@@ -178,18 +157,18 @@
         <button
           type="button"
           class="button primary"
+          disabled={isProcessing}
           style="width: 100%;"
-          on:click={processImages}>Process Images</button
+          on:click={processImages}>{isProcessing ? "Processing..." : "Process Images"}</button
         >
       </div>
       <div class="row" style="margin-top: 0.5em;">
         <button
           type="button"
           class="button"
+          disabled={isProcessing}
           style="width: 100%;"
-          on:click={() => {
-            sessionImages = [];
-          }}>Clear Session</button
+          on:click={clearSession}>Clear Session</button
         >
       </div>
     </div>
@@ -205,9 +184,8 @@
             <button
               type="button"
               class="button"
-              on:click={() => {
-                sessionImages = sessionImages.filter((_, i) => i !== index);
-              }}>Remove</button
+              disabled={isProcessing}
+              on:click={() => removeImage(index)}>Remove</button
             >
           </span>
         </h1>
@@ -225,22 +203,6 @@
       </div>
     </div>
 
-    <!-- We only care about OCR output when working locally -->
-    {#if process.env.NODE_ENV !== "production"}
-      <div class="row">
-        <div class="col">
-          <div>OCR text:</div>
-          <div class="card output-holder ocr-text">
-            {#if !sessionImg.isLoading || sessionImg.ocrText !== ""}
-              {sessionImg.ocrText}
-            {/if}
-            {#if sessionImg.isLoading && sessionImg.ocrText === ""}
-              Loading OCR text...
-            {/if}
-          </div>
-        </div>
-      </div>
-    {/if}
     <div class="row">
       <div class="col">
         <div>Extracted text:</div>
@@ -248,19 +210,24 @@
           <div><small>Loading ...</small></div>
         {/if}
         <div class="card output-holder">
-          {#if sessionImg.isLoading}
-            {#if sessionImg.ocrText === "" && sessionImg.correctedText === ""}
-              Waiting for OCR text...
-            {:else if sessionImg.ocrText !== "" && sessionImg.correctedText === ""}
-              Loading corrected text...
+          {#if sessionImg.error}
+            <p role="alert">{sessionImg.error}</p>
+            {#if sessionImg.correctedText}
+              <small>Partial output; transcription did not complete.</small>
             {/if}
-          {:else if sessionImg.correctedText !== ""}
-            <button
-              on:click={() => copyToClipboard(sessionImg.correctedText)}
-              class="copy-button"
-            >
-              Copy to clipboard
-            </button>
+          {/if}
+          {#if sessionImg.isLoading && !sessionImg.correctedText}
+            Transcribing image...
+          {/if}
+          {#if sessionImg.correctedText !== ""}
+            {#if !sessionImg.isLoading}
+              <button
+                on:click={() => copyToClipboard(sessionImg.correctedText)}
+                class="copy-button"
+              >
+                Copy to clipboard
+              </button>
+            {/if}
             <pre>
 {sessionImg.correctedText}
 </pre>
@@ -285,10 +252,5 @@
   .copy-button {
     font-size: 1em;
     padding: 0.3em 0.5em;
-  }
-
-  .ocr-text {
-    max-height: 10em;
-    overflow-y: scroll;
   }
 </style>
